@@ -1,30 +1,50 @@
-# Terraform Enterprise Module Library
+# Infrastructure Automation Library
 
 [![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.6-844FBA?logo=terraform&logoColor=white)](#)
-[![AWS](https://img.shields.io/badge/AWS-VPC-232F3E?logo=amazonwebservices&logoColor=white)](#)
-[![Azure](https://img.shields.io/badge/Azure-VNet-0078D4?logo=microsoftazure&logoColor=white)](#)
+[![Ansible](https://img.shields.io/badge/Automation-Ansible-EE0000?logo=ansible&logoColor=white)](#)
+[![CI](https://img.shields.io/badge/Validation-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)](#)
 
-A growing library of **small, opinionated Terraform modules** designed to demonstrate reusable enterprise infrastructure patterns, module contracts, validation, tagging and CI rather than one-off monolithic configurations.
+A growing collection of **reusable infrastructure automation patterns** demonstrating Terraform module engineering, Ansible configuration management, validation, tagging and CI rather than one-off deployment scripts.
 
-> These modules are reference implementations. They intentionally avoid organization-specific IAM, naming, policy and remote-state assumptions. Review provider versions, security requirements, network plans and cost implications before using them in a real environment.
+> These are reference implementations. They intentionally avoid organization-specific credentials, IAM, naming, policy and remote-state assumptions. Review provider/module versions, security requirements, network plans and operational controls before using them in a real environment.
 
-## Module design principles
+## Automation principles
 
-1. **Clear contract** — inputs and outputs should be understandable without reading every resource block.
-2. **Safe defaults** — defaults are suitable for a lab/reference scenario and should not silently create unnecessary public exposure.
-3. **Composition over monoliths** — modules solve bounded infrastructure problems and can be combined by environment/root modules.
-4. **Validation close to inputs** — reject obviously invalid values early where Terraform can express the rule.
-5. **Consistent metadata** — provide a predictable tagging model.
-6. **No embedded credentials** — authentication remains outside module source.
-7. **Version constraints** — declare Terraform/provider expectations explicitly.
-8. **CI validation** — formatting and `terraform validate` are baseline quality gates.
+1. **Clear contracts** — inputs, outputs and role responsibilities should be understandable without reverse-engineering every task/resource.
+2. **Safe reference defaults** — examples should not silently create unnecessary public exposure or destructive changes.
+3. **Composition over monoliths** — bounded modules/roles can be combined by environment and platform teams.
+4. **Validation close to source** — formatting, syntax and semantic validation are baseline quality gates.
+5. **Consistent metadata** — tags, naming and ownership are deliberate rather than incidental.
+6. **No embedded credentials** — authentication remains outside repository source.
+7. **Version constraints** — tool/provider/collection expectations are declared explicitly.
+8. **Idempotence and reviewability** — re-running automation should converge toward declared state where supported.
 
-## Current modules
+## Current Terraform modules
 
 | Module | Purpose | Status |
 |---|---|---|
 | [`modules/aws-vpc`](modules/aws-vpc) | VPC with public/private subnet tiers across AZs | Reference |
 | [`modules/azure-vnet`](modules/azure-vnet) | Azure VNet with configurable application subnets | Reference |
+
+## Configuration-management project
+
+### [Ansible Infrastructure Baseline](projects/ansible-infrastructure-baseline)
+
+A reusable Linux baseline demonstrating inventory separation, role structure, defaults, handlers, package/time-service configuration and CI syntax validation.
+
+This project illustrates the architectural distinction between:
+
+```text
+Terraform / IaC
+    ↓
+Infrastructure provisioning
+    ↓
+VMs / networks / cloud resources
+    ↓
+Ansible
+    ↓
+OS configuration / packages / platform baseline
+```
 
 ## Repository structure
 
@@ -34,17 +54,19 @@ A growing library of **small, opinionated Terraform modules** designed to demons
 ├── docs/module-standard.md
 ├── modules/
 │   ├── aws-vpc/
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── outputs.tf
 │   └── azure-vnet/
-│       ├── main.tf
-│       ├── variables.tf
-│       └── outputs.tf
 ├── examples/
-│   ├── aws-vpc/main.tf
-│   └── azure-vnet/main.tf
-└── .github/workflows/terraform.yml
+│   ├── aws-vpc/
+│   └── azure-vnet/
+├── projects/
+│   └── ansible-infrastructure-baseline/
+│       ├── ansible.cfg
+│       ├── inventory/
+│       ├── playbooks/
+│       └── roles/common/
+└── .github/workflows/
+    ├── terraform.yml
+    └── ansible-baseline.yml
 ```
 
 ## AWS VPC example
@@ -56,8 +78,8 @@ module "network" {
   name       = "platform-dev"
   cidr_block = "10.20.0.0/16"
 
-  availability_zones = ["us-east-1a", "us-east-1b"]
-  public_subnet_cidrs = ["10.20.10.0/24", "10.20.11.0/24"]
+  availability_zones  = ["us-east-1a", "us-east-1b"]
+  public_subnet_cidrs  = ["10.20.10.0/24", "10.20.11.0/24"]
   private_subnet_cidrs = ["10.20.20.0/24", "10.20.21.0/24"]
 
   tags = {
@@ -81,7 +103,7 @@ module "network" {
   address_space       = ["10.30.0.0/16"]
 
   subnets = {
-    app = "10.30.10.0/24"
+    app  = "10.30.10.0/24"
     data = "10.30.20.0/24"
   }
 }
@@ -89,20 +111,26 @@ module "network" {
 
 ## Quality gates
 
-CI checks:
+Terraform CI checks include:
 
-- `terraform fmt -check -recursive`
-- provider initialization without backend
-- `terraform validate` for examples
+- `terraform fmt -check -recursive`;
+- provider initialization without backend;
+- `terraform validate` for examples.
 
-A production module lifecycle should additionally consider policy-as-code, security scanners, automated tests, release tags, semantic versioning, changelog generation and provider-upgrade testing.
+Ansible CI checks include:
 
-## Module lifecycle
+- required collection installation;
+- inventory parsing;
+- `ansible-playbook --syntax-check`.
+
+A production automation lifecycle should additionally consider policy-as-code, security scanners, automated integration tests, release tags, semantic versioning, changelogs, provider/collection upgrade testing and controlled rollout evidence.
+
+## Automation lifecycle
 
 ```text
 Requirement
    ↓
-Module contract
+Module / role contract
    ↓
 Implementation
    ↓
@@ -110,13 +138,15 @@ Static validation / tests
    ↓
 Peer review
    ↓
-Versioned release
+Versioned change
    ↓
 Environment composition
    ↓
-Plan / approval / apply
+Plan / check mode / approval
    ↓
-Operational feedback
+Apply / controlled rollout
+   ↓
+Operational feedback & drift remediation
 ```
 
 ## Related projects
@@ -124,15 +154,18 @@ Operational feedback
 - [Hybrid Cloud Reference Architecture](https://github.com/DeeSanas/hybrid-cloud-reference-architecture)
 - [OpenStack Private Cloud Reference Architecture](https://github.com/DeeSanas/openstack-private-cloud-reference-architecture)
 - [Data Center EVPN-VXLAN Architecture](https://github.com/DeeSanas/datacenter-evpn-vxlan-architecture)
+- [VMware to OpenStack Migration Framework](https://github.com/DeeSanas/vmware-to-openstack-migration-framework)
 
 ## Roadmap
 
 - [x] AWS VPC baseline module
 - [x] Azure VNet baseline module
-- [x] Runnable composition examples
+- [x] Runnable Terraform composition examples
 - [x] Terraform CI validation
+- [x] Ansible Linux infrastructure baseline
+- [x] Ansible CI syntax validation
 - [ ] AWS Transit Gateway module
 - [ ] Azure hub/spoke peering module
 - [ ] OpenStack network module
 - [ ] Kubernetes platform prerequisites module
-- [ ] Automated module tests and security scanning
+- [ ] Automated module integration tests and security scanning
