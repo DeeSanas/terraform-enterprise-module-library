@@ -1,0 +1,8 @@
+---
+baseline_timezone: UTC
+baseline_packages:
+  - curl
+  - git
+  - chrony
+  - rsyslog
+baseline_config_dir: /etc/enterprise-baseline
