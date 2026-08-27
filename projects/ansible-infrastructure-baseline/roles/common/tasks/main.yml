@@ -1,0 +1,34 @@
+---
+- name: Install baseline packages
+  ansible.builtin.package:
+    name: "{{ baseline_packages }}"
+    state: present
+
+- name: Set system timezone
+  community.general.timezone:
+    name: "{{ baseline_timezone }}"
+
+- name: Ensure baseline configuration directory exists
+  ansible.builtin.file:
+    path: "{{ baseline_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy baseline marker
+  ansible.builtin.copy:
+    dest: "{{ baseline_config_dir }}/managed-by-ansible"
+    content: |
+      This host baseline is managed through Ansible.
+      Review the source repository before making manual changes.
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Ensure chrony is enabled and running
+  ansible.builtin.service:
+    name: chronyd
+    state: started
+    enabled: true
+  notify: Restart chrony
